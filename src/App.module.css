@@ -1,0 +1,37 @@
+.unsupported {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: var(--space-8);
+}
+
+.unsupportedCard {
+  background: var(--glass-surface);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur));
+  border-radius: var(--radius-lg);
+  padding: var(--space-10) var(--space-12);
+  max-width: 480px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.unsupportedCard h1 {
+  font-size: var(--font-size-lg);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.unsupportedCard p {
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+  line-height: 1.65;
+}
+
+.unsupportedCard strong {
+  color: var(--text-primary);
+  font-weight: 500;
+}

@@ -1,0 +1,63 @@
+.pane {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  /* Subtle scrollbar */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.pane::-webkit-scrollbar {
+  width: 4px;
+}
+
+.pane::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.inner {
+  position: relative; /* anchor for the absolutely-positioned highlight bar */
+  padding: 48vh 0;
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.highlight {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 0; /* driven imperatively via style.top / style.height */
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  pointer-events: none;
+}
+
+.contextSeparator {
+  height: 1px;
+  margin: 3px var(--space-6);
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(255, 255, 255, 0.18) 20%,
+    rgba(255, 255, 255, 0.18) 80%,
+    transparent
+  );
+}
+
+.emptyNotes {
+  padding: 48px var(--space-6);
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+.emptyNotes kbd {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid var(--glass-border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--text-secondary);
+}

@@ -1,0 +1,68 @@
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: 3px var(--space-6);
+  min-height: 1.7em;
+  border-radius: 4px;
+  opacity: 1;
+  background: transparent;
+  transition:
+    opacity 200ms cubic-bezier(0.4, 0, 0.2, 1),
+    background 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Blank line — structural spacer only */
+.blank {
+  min-height: 0.85em;
+  pointer-events: none;
+}
+
+/* Faded lines (all non-active non-blank in arrow/jump mode) */
+.faded {
+  opacity: 0.2;
+}
+
+/* Context lines shown in summary mode via Space expansion */
+.context {
+  opacity: 0.38;
+}
+
+/* Scroll mode — all lines at full opacity, cursor shows clickability */
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Note dot column */
+.dot {
+  width: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 1px;
+}
+
+.dotMark {
+  display: block;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--note-dot);
+  box-shadow: 0 0 4px var(--note-dot-glow);
+}
+
+/* Text */
+.text {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+  flex: 1;
+}
