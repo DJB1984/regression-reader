@@ -2,7 +2,7 @@
 
 A focused markdown reader built for running regression test suites. Instead of losing your place in a wall of text every time you switch monitors, Regression Reader shows you one line at a time — everything else fades back. Annotate failures as you go and review them all at the end.
 
-> Built to solve a real problem from my UI developer internship at Tektonux.
+> Built with Claude to solve a real problem from my UI developer internship at Tektonux.
 
 ## Features
 
@@ -55,4 +55,4 @@ Your `.md` file stays on your machine — the app never uploads it anywhere. A c
 
 ## Why I Built This
 
-I was doing regression testing at my internship and kept losing my place. The test document was hundreds of lines long — headers, sub-headers, nested lists — and every time I switched monitors to actually run a test, I'd come back and have no idea where I was. I needed something that would lock me to one line at a time and let me mark failures without breaking my flow. So I built it.
+I was doing regression testing at my internship and kept losing my place. The test document was hundreds of lines long — headers, sub-headers, nested lists — and every time I switched monitors to actually run a test, I'd come back and have no idea where I was. I needed something that would lock me to one line at a time and let me mark failures without breaking my flow. So I built it with Claude.
