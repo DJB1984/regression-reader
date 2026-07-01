@@ -1,4 +1,4 @@
-export type Mode = 'arrow' | 'jump' | 'scroll' | 'summary';
+export type Mode = 'arrow' | 'jump' | 'scroll' | 'summary' | 'bug';
 
 export type SessionData = {
   id: string;
@@ -8,6 +8,7 @@ export type SessionData = {
   lastAccessed: string;
   notes: Record<string, string>;
   crossedLines: string[];
+  bugNotes: string[];
 };
 
 export type SessionHandles = {

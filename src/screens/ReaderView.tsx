@@ -9,6 +9,7 @@ import { parseLines } from '../lib/parseLines';
 import { useGlobalKeys } from '../hooks/useGlobalKeys';
 import TopBar from '../components/TopBar';
 import DocumentPane from '../components/DocumentPane';
+import BugPane from '../components/BugPane';
 import KeyboardHandler from '../components/KeyboardHandler';
 import styles from './ReaderView.module.css';
 
@@ -19,6 +20,11 @@ type ReaderState = {
   activeIndex: number;
   notes: Record<string, string>;
   crossedLines: string[];
+  bugNotes: string[];
+  activeBugIndex: number;
+  bugBubbleOpen: boolean;
+  bugBubbleDraft: string;
+  editingBugIndex: number | null; // null = new, number = editing existing
   mode: Mode;
   noteBubbleOpen: boolean;
   noteBubbleDraft: string;
@@ -26,8 +32,9 @@ type ReaderState = {
 };
 
 type ReaderAction =
-  | { type: 'INIT'; lines: string[]; activeIndex: number; notes: Record<string, string>; crossedLines: string[] }
+  | { type: 'INIT'; lines: string[]; activeIndex: number; notes: Record<string, string>; crossedLines: string[]; bugNotes: string[] }
   | { type: 'MOVE'; direction: 'prev' | 'next' }
+  | { type: 'MOVE_UNCROSS'; direction: 'prev' | 'next' }
   | { type: 'SET_MODE'; mode: Mode }
   | { type: 'CLICK_LINE'; index: number }
   | { type: 'OPEN_NOTE_BUBBLE' }
@@ -35,6 +42,15 @@ type ReaderAction =
   | { type: 'SET_NOTE_DRAFT'; text: string }
   | { type: 'SAVE_NOTE' }
   | { type: 'TOGGLE_CROSSED' }
+  | { type: 'CROSS_LINE' }
+  | { type: 'DELETE_NOTE' }
+  | { type: 'OPEN_BUG_NEW' }
+  | { type: 'OPEN_BUG_EDIT' }
+  | { type: 'CLOSE_BUG_BUBBLE' }
+  | { type: 'SET_BUG_DRAFT'; text: string }
+  | { type: 'SAVE_BUG' }
+  | { type: 'DELETE_BUG' }
+  | { type: 'MOVE_BUG'; direction: 'prev' | 'next' }
   | { type: 'EXPAND_CONTEXT' }
   | { type: 'SUMMARY_ESCAPE' }
   | { type: 'SUMMARY_COLLAPSE_CURRENT' };
@@ -44,6 +60,11 @@ const initialState: ReaderState = {
   activeIndex: 0,
   notes: {},
   crossedLines: [],
+  bugNotes: [],
+  activeBugIndex: 0,
+  bugBubbleOpen: false,
+  bugBubbleDraft: '',
+  editingBugIndex: null,
   mode: 'arrow',
   noteBubbleOpen: false,
   noteBubbleDraft: '',
@@ -75,6 +96,7 @@ function readerReducer(state: ReaderState, action: ReaderAction): ReaderState {
         activeIndex: action.activeIndex,
         notes: action.notes,
         crossedLines: action.crossedLines,
+        bugNotes: action.bugNotes,
       };
 
     case 'MOVE': {
@@ -91,6 +113,27 @@ function readerReducer(state: ReaderState, action: ReaderAction): ReaderState {
       }
       const step = action.direction === 'next' ? 1 : -1;
       return { ...state, activeIndex: nextNonBlank(state.lines, state.activeIndex, step) };
+    }
+
+    case 'MOVE_UNCROSS': {
+      if (state.mode === 'scroll') return state;
+      let nextIndex: number;
+      if (state.mode === 'jump' || state.mode === 'summary') {
+        const noted = notedLines(state);
+        const cur = noted.indexOf(state.activeIndex);
+        nextIndex = action.direction === 'next'
+          ? (noted[cur + 1] ?? state.activeIndex)
+          : (noted[cur - 1] ?? state.activeIndex);
+      } else {
+        const step = action.direction === 'next' ? 1 : -1;
+        nextIndex = nextNonBlank(state.lines, state.activeIndex, step);
+      }
+      if (nextIndex === state.activeIndex) return state;
+      return {
+        ...state,
+        activeIndex: nextIndex,
+        crossedLines: state.crossedLines.filter(k => k !== String(nextIndex)),
+      };
     }
 
     case 'SET_MODE': {
@@ -145,6 +188,12 @@ function readerReducer(state: ReaderState, action: ReaderAction): ReaderState {
       return { ...state, notes, noteBubbleOpen: false, noteBubbleDraft: '' };
     }
 
+    case 'DELETE_NOTE': {
+      const notes = { ...state.notes };
+      delete notes[String(state.activeIndex)];
+      return { ...state, notes, noteBubbleOpen: false, noteBubbleDraft: '' };
+    }
+
     case 'TOGGLE_CROSSED': {
       if (state.lines[state.activeIndex]?.trim().length === 0) return state;
       const key = String(state.activeIndex);
@@ -155,6 +204,59 @@ function readerReducer(state: ReaderState, action: ReaderAction): ReaderState {
           ? state.crossedLines.filter(k => k !== key)
           : [...state.crossedLines, key],
       };
+    }
+
+    case 'CROSS_LINE': {
+      if (state.lines[state.activeIndex]?.trim().length === 0) return state;
+      const key = String(state.activeIndex);
+      if (state.crossedLines.includes(key)) return state;
+      return { ...state, crossedLines: [...state.crossedLines, key] };
+    }
+
+    case 'OPEN_BUG_NEW':
+      return { ...state, bugBubbleOpen: true, bugBubbleDraft: '', editingBugIndex: null };
+
+    case 'OPEN_BUG_EDIT': {
+      if (state.bugNotes.length === 0) return state;
+      const safeIdx = Math.min(state.activeBugIndex, state.bugNotes.length - 1);
+      return { ...state, bugBubbleOpen: true, bugBubbleDraft: state.bugNotes[safeIdx], editingBugIndex: safeIdx };
+    }
+
+    case 'CLOSE_BUG_BUBBLE':
+      return { ...state, bugBubbleOpen: false, bugBubbleDraft: '', editingBugIndex: null };
+
+    case 'SET_BUG_DRAFT':
+      return { ...state, bugBubbleDraft: action.text };
+
+    case 'SAVE_BUG': {
+      const text = state.bugBubbleDraft.trim();
+      if (!text) return { ...state, bugBubbleOpen: false, bugBubbleDraft: '', editingBugIndex: null };
+      const bugNotes = [...state.bugNotes];
+      if (state.editingBugIndex !== null) {
+        bugNotes[state.editingBugIndex] = text;
+      } else {
+        bugNotes.push(text);
+      }
+      const activeBugIndex = state.editingBugIndex !== null ? state.editingBugIndex : bugNotes.length - 1;
+      return { ...state, bugNotes, activeBugIndex, bugBubbleOpen: false, bugBubbleDraft: '', editingBugIndex: null };
+    }
+
+    case 'DELETE_BUG': {
+      if (state.editingBugIndex === null) {
+        return { ...state, bugBubbleOpen: false, bugBubbleDraft: '', editingBugIndex: null };
+      }
+      const bugNotes = state.bugNotes.filter((_, i) => i !== state.editingBugIndex);
+      const activeBugIndex = Math.min(state.activeBugIndex, Math.max(0, bugNotes.length - 1));
+      return { ...state, bugNotes, activeBugIndex, bugBubbleOpen: false, bugBubbleDraft: '', editingBugIndex: null };
+    }
+
+    case 'MOVE_BUG': {
+      if (state.mode !== 'bug' || state.bugNotes.length === 0) return state;
+      const next = action.direction === 'next'
+        ? Math.min(state.activeBugIndex + 1, state.bugNotes.length - 1)
+        : Math.max(state.activeBugIndex - 1, 0);
+      if (next === state.activeBugIndex) return state;
+      return { ...state, activeBugIndex: next };
     }
 
     case 'EXPAND_CONTEXT': {
@@ -209,6 +311,7 @@ export default function ReaderView() {
   const [sessionName, setSessionName] = useState('');
   const [loadTrigger, setLoadTrigger] = useState(0);
   const [globalKeysEnabled, setGlobalKeysEnabled] = useState(false);
+  const [notesExpanded, setNotesExpanded] = useState(false);
   const [state, dispatch] = useReducer(readerReducer, initialState);
   const debounceRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -252,7 +355,7 @@ export default function ReaderView() {
           : Math.max(0, firstNonBlank);
 
       setSessionName(session.sessionName);
-      dispatch({ type: 'INIT', lines, activeIndex: safeIndex, notes: session.notes, crossedLines: session.crossedLines ?? [] });
+      dispatch({ type: 'INIT', lines, activeIndex: safeIndex, notes: session.notes, crossedLines: session.crossedLines ?? [], bugNotes: session.bugNotes ?? [] });
       setLoadState({ status: 'ready' });
     }
     load().catch(() => setLoadState({ status: 'error', message: 'Failed to load file.', canRelink: true }));
@@ -261,10 +364,10 @@ export default function ReaderView() {
   // Persist to IndexedDB instantly; debounce disk flush
   useEffect(() => {
     if (loadState.status !== 'ready' || !id) return;
-    updateSession(id, { currentLineIndex: state.activeIndex, notes: state.notes, crossedLines: state.crossedLines });
+    updateSession(id, { currentLineIndex: state.activeIndex, notes: state.notes, crossedLines: state.crossedLines, bugNotes: state.bugNotes });
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => { flushToDisk(id); }, 5000);
-  }, [state.activeIndex, state.notes, id, loadState.status, updateSession, flushToDisk]);
+  }, [state.activeIndex, state.notes, state.bugNotes, id, loadState.status, updateSession, flushToDisk]);
 
   // Flush on unmount
   useEffect(() => {
@@ -279,17 +382,32 @@ export default function ReaderView() {
     if (modeRef.current === 'summary') {
       const key = String(activeIndexRef.current);
       if (key in contextExpansionRef.current) {
-        // Collapse context first, navigate after animation settles
         if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
         dispatch({ type: 'SUMMARY_COLLAPSE_CURRENT' });
         pendingTimerRef.current = setTimeout(() => {
           dispatch({ type: 'MOVE', direction: 'prev' });
           pendingTimerRef.current = null;
-        }, 360); // 10ms after Effect 2's 350ms rAF loop ends
+        }, 360);
         return;
       }
     }
     dispatch({ type: 'MOVE', direction: 'prev' });
+  }, []);
+
+  const onMoveUpUncross = useCallback(() => {
+    if (modeRef.current === 'summary') {
+      const key = String(activeIndexRef.current);
+      if (key in contextExpansionRef.current) {
+        if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+        dispatch({ type: 'SUMMARY_COLLAPSE_CURRENT' });
+        pendingTimerRef.current = setTimeout(() => {
+          dispatch({ type: 'MOVE_UNCROSS', direction: 'prev' });
+          pendingTimerRef.current = null;
+        }, 360);
+        return;
+      }
+    }
+    dispatch({ type: 'MOVE_UNCROSS', direction: 'prev' });
   }, []);
 
   const onMoveDown = useCallback(() => {
@@ -317,12 +435,27 @@ export default function ReaderView() {
   const onOpenNote     = useCallback(() => dispatch({ type: 'OPEN_NOTE_BUBBLE' }), []);
   const onCloseNote    = useCallback(() => dispatch({ type: 'CLOSE_NOTE_BUBBLE' }), []);
   const onSaveNote     = useCallback(() => dispatch({ type: 'SAVE_NOTE' }), []);
+  const onDeleteNote   = useCallback(() => dispatch({ type: 'DELETE_NOTE' }), []);
   const onSetNoteDraft = useCallback((text: string) => dispatch({ type: 'SET_NOTE_DRAFT', text }), []);
   const onExpandContext   = useCallback(() => dispatch({ type: 'EXPAND_CONTEXT' }), []);
   const onSummaryEscape   = useCallback(() => dispatch({ type: 'SUMMARY_ESCAPE' }), []);
   const onToggleCrossed   = useCallback(() => dispatch({ type: 'TOGGLE_CROSSED' }), []);
+  const onStrikeAndMove   = useCallback(() => {
+    dispatch({ type: 'CROSS_LINE' });
+    onMoveDown();
+  }, [onMoveDown]);
+  const onOpenBugBubble   = useCallback(() => {
+    if (modeRef.current === 'bug') dispatch({ type: 'OPEN_BUG_EDIT' });
+    else dispatch({ type: 'OPEN_BUG_NEW' });
+  }, []);
+  const onCloseBug        = useCallback(() => dispatch({ type: 'CLOSE_BUG_BUBBLE' }), []);
+  const onSaveBug         = useCallback(() => dispatch({ type: 'SAVE_BUG' }), []);
+  const onDeleteBug       = useCallback(() => dispatch({ type: 'DELETE_BUG' }), []);
+  const onSetBugDraft     = useCallback((text: string) => dispatch({ type: 'SET_BUG_DRAFT', text }), []);
+  const onMoveBugUp       = useCallback(() => dispatch({ type: 'MOVE_BUG', direction: 'prev' }), []);
+  const onMoveBugDown     = useCallback(() => dispatch({ type: 'MOVE_BUG', direction: 'next' }), []);
 
-  const MODE_CYCLE: Mode[] = ['scroll', 'arrow', 'jump', 'summary'];
+  const MODE_CYCLE: Mode[] = ['scroll', 'arrow', 'jump', 'summary', 'bug'];
   const onCycleMode = useCallback((direction: 'prev' | 'next') => {
     const cur  = MODE_CYCLE.indexOf(modeRef.current);
     const next = direction === 'next'
@@ -376,22 +509,46 @@ export default function ReaderView() {
         onBack={() => navigate('/')}
         globalKeysEnabled={globalKeysEnabled}
         onGlobalKeysToggle={() => setGlobalKeysEnabled(v => !v)}
+        notesExpanded={notesExpanded}
+        onNotesExpandedToggle={() => setNotesExpanded(v => !v)}
       />
-      <DocumentPane
-        lines={state.lines}
-        activeIndex={state.activeIndex}
-        notes={state.notes}
-        crossedLines={state.crossedLines}
-        mode={state.mode}
-        noteBubbleOpen={state.noteBubbleOpen}
-        noteBubbleDraft={state.noteBubbleDraft}
-        contextExpansion={state.contextExpansion}
-        onLineClick={onLineClick}
-        onScroll={onEnterScroll}
-        onSaveNote={onSaveNote}
-        onCloseNote={onCloseNote}
-        onSetNoteDraft={onSetNoteDraft}
-      />
+      {state.mode === 'bug' ? (
+        <BugPane
+          bugNotes={state.bugNotes}
+          activeBugIndex={state.activeBugIndex}
+          bugBubbleOpen={state.bugBubbleOpen}
+          bugBubbleDraft={state.bugBubbleDraft}
+          editingBugIndex={state.editingBugIndex}
+          onSaveBug={onSaveBug}
+          onDeleteBug={onDeleteBug}
+          onCloseBug={onCloseBug}
+          onSetBugDraft={onSetBugDraft}
+        />
+      ) : (
+        <DocumentPane
+          lines={state.lines}
+          activeIndex={state.activeIndex}
+          notes={state.notes}
+          crossedLines={state.crossedLines}
+          notesExpanded={notesExpanded}
+          mode={state.mode}
+          noteBubbleOpen={state.noteBubbleOpen}
+          noteBubbleDraft={state.noteBubbleDraft}
+          bugBubbleOpen={state.bugBubbleOpen}
+          bugBubbleDraft={state.bugBubbleDraft}
+          contextExpansion={state.contextExpansion}
+          onLineClick={onLineClick}
+          onScroll={onEnterScroll}
+          onSaveNote={onSaveNote}
+          onDeleteNote={onDeleteNote}
+          onCloseNote={onCloseNote}
+          onSetNoteDraft={onSetNoteDraft}
+          onSaveBug={onSaveBug}
+          onDeleteBug={onDeleteBug}
+          onCloseBug={onCloseBug}
+          onSetBugDraft={onSetBugDraft}
+        />
+      )}
       <AnimatePresence>
         {state.mode === 'scroll' && (
           <motion.div
@@ -408,10 +565,15 @@ export default function ReaderView() {
       <KeyboardHandler
         mode={state.mode}
         onMoveUp={onMoveUp}
+        onMoveUpUncross={onMoveUpUncross}
         onMoveDown={onMoveDown}
         onToggleJump={onToggleJump}
         onOpenNote={onOpenNote}
         onToggleCrossed={onToggleCrossed}
+        onStrikeAndMove={onStrikeAndMove}
+        onOpenBugBubble={onOpenBugBubble}
+        onMoveBugUp={onMoveBugUp}
+        onMoveBugDown={onMoveBugDown}
         onExitScroll={onExitScroll}
         onExpandContext={onExpandContext}
         onSummaryEscape={onSummaryEscape}

@@ -13,12 +13,20 @@ type Props = {
   mode: Mode;
   noteBubbleOpen: boolean;
   noteBubbleDraft: string;
+  bugBubbleOpen: boolean;
+  bugBubbleDraft: string;
   contextExpansion: Record<string, number>;
   onLineClick: (index: number) => void;
   onScroll: () => void;
+  notesExpanded: boolean;
   onSaveNote: () => void;
+  onDeleteNote: () => void;
   onCloseNote: () => void;
   onSetNoteDraft: (text: string) => void;
+  onSaveBug: () => void;
+  onDeleteBug: () => void;
+  onCloseBug: () => void;
+  onSetBugDraft: (text: string) => void;
 };
 
 const SPRING   = { type: 'spring', stiffness: 500, damping: 40, mass: 0.5 } as const;
@@ -32,12 +40,20 @@ export default function DocumentPane({
   mode,
   noteBubbleOpen,
   noteBubbleDraft,
+  bugBubbleOpen,
+  bugBubbleDraft,
   contextExpansion,
   onLineClick,
   onScroll,
+  notesExpanded,
   onSaveNote,
+  onDeleteNote,
   onCloseNote,
   onSetNoteDraft,
+  onSaveBug,
+  onDeleteBug,
+  onCloseBug,
+  onSetBugDraft,
 }: Props) {
   const paneRef        = useRef<HTMLDivElement | null>(null);
   const activeRef      = useRef<HTMLDivElement | null>(null);
@@ -189,6 +205,40 @@ export default function DocumentPane({
     };
   }, [mode, contextExpansion]); // activeIndex intentionally excluded
 
+  // ── Effect 3: notesExpanded toggle ────────────────────────────────────────
+  // Inline notes appearing/disappearing shift the document height instantly.
+  // Run a short rAF loop to keep bar + scroll pinned to the active line.
+  useEffect(() => {
+    if (!mountedRef.current) return;
+
+    scrollAnim.current?.stop();
+    highlightAnim.current?.stop();
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+
+    const startTime = performance.now();
+    const loop = () => {
+      const el   = activeRef.current;
+      const pane = paneRef.current;
+      if (!el || !pane) { rafRef.current = null; return; }
+
+      const top    = el.offsetTop;
+      const height = el.offsetHeight;
+      snapHighlight(top, height);
+      pane.scrollTop = Math.max(0, top - pane.clientHeight / 2 + height / 2);
+
+      if (performance.now() - startTime < 200) {
+        rafRef.current = requestAnimationFrame(loop);
+      } else {
+        rafRef.current = null;
+      }
+    };
+    rafRef.current = requestAnimationFrame(loop);
+
+    return () => {
+      if (rafRef.current !== null) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+    };
+  }, [notesExpanded]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Cleanup on unmount
   useEffect(() => () => {
     scrollAnim.current?.stop();
@@ -277,17 +327,39 @@ export default function DocumentPane({
                   }
                 />
                 {isActive && (
-                  <AnimatePresence>
-                    {noteBubbleOpen && (
-                      <NotesBubble
-                        key="bubble"
-                        draft={noteBubbleDraft}
-                        onChange={onSetNoteDraft}
-                        onSave={onSaveNote}
-                        onClose={onCloseNote}
-                      />
-                    )}
-                  </AnimatePresence>
+                  <>
+                    <AnimatePresence>
+                      {noteBubbleOpen && (
+                        <NotesBubble
+                          key="note-bubble"
+                          draft={noteBubbleDraft}
+                          onChange={onSetNoteDraft}
+                          onSave={onSaveNote}
+                          onDelete={onDeleteNote}
+                          onClose={onCloseNote}
+                        />
+                      )}
+                    </AnimatePresence>
+                    <AnimatePresence>
+                      {bugBubbleOpen && (
+                        <NotesBubble
+                          key="bug-bubble"
+                          draft={bugBubbleDraft}
+                          onChange={onSetBugDraft}
+                          onSave={onSaveBug}
+                          onDelete={onDeleteBug}
+                          onClose={onCloseBug}
+                          variant="bug"
+                          placeholder="Describe the bug…"
+                        />
+                      )}
+                    </AnimatePresence>
+                  </>
+                )}
+                {notesExpanded && isNoted && !(isActive && noteBubbleOpen) && (
+                  <div className={styles.inlineNote}>
+                    {notes[String(index)]}
+                  </div>
                 )}
               </motion.div>
 

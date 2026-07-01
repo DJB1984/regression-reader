@@ -107,7 +107,21 @@
   color: var(--text-primary);
 }
 
-/* Global keys toggle switch */
+/* Labeled toggle groups */
+.toggleGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.toggleLabel {
+  font-size: var(--font-size-sm);
+  color: var(--text-tertiary);
+  user-select: none;
+}
+
+/* Toggle switch */
 .toggle {
   position: relative;
   width: 34px;

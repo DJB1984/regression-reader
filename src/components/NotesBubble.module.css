@@ -2,6 +2,12 @@
   padding: 0 var(--space-6);
 }
 
+.bubbleBug {
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.18);
+  border-left: 2px solid #ef4444;
+}
+
 .bubble {
   margin: var(--space-1) 0 var(--space-3);
   padding: var(--space-3) var(--space-4);
@@ -30,10 +36,30 @@
   color: var(--text-tertiary);
 }
 
+.hintRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .hint {
   font-size: 11px;
   color: var(--text-tertiary);
   user-select: none;
+}
+
+.deleteBtn {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-tertiary);
+  padding: 1px 6px;
+  border-radius: 3px;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.deleteBtn:hover {
+  color: #f87171;
+  background: rgba(248, 113, 113, 0.08);
 }
 
 .hint kbd {

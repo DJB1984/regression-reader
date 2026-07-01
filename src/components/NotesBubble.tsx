@@ -7,20 +7,31 @@ type Props = {
   draft: string;
   onChange: (text: string) => void;
   onSave: () => void;
+  onDelete: () => void;
   onClose: () => void;
+  variant?: 'note' | 'bug';
+  placeholder?: string;
 };
 
-export default function NotesBubble({ draft, onChange, onSave, onClose }: Props) {
+export default function NotesBubble({ draft, onChange, onSave, onDelete, onClose, variant = 'note', placeholder = 'Add a note…' }: Props) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    textareaRef.current?.focus();
+    const el = textareaRef.current;
+    if (!el) return;
+    el.focus();
+    el.setSelectionRange(el.value.length, el.value.length);
   }, []);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Escape') {
       e.preventDefault();
       onClose();
+      return;
+    }
+    if (e.key === 'Delete') {
+      e.preventDefault();
+      onDelete();
       return;
     }
     // Enter saves; Shift+Enter inserts a newline as normal
@@ -45,19 +56,24 @@ export default function NotesBubble({ draft, onChange, onSave, onClose }: Props)
       style={{ overflow: 'hidden' }}
       onWheel={stopWheelPropagation}
     >
-      <div className={styles.bubble}>
+      <div className={`${styles.bubble} ${variant === 'bug' ? styles.bubbleBug : ''}`}>
         <textarea
           ref={textareaRef}
           className={styles.textarea}
           value={draft}
           onChange={e => onChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Add a note…"
+          placeholder={placeholder}
           rows={3}
         />
-        <p className={styles.hint}>
-          <kbd>Enter</kbd> save &nbsp;·&nbsp; <kbd>Shift+Enter</kbd> newline &nbsp;·&nbsp; <kbd>Esc</kbd> discard
-        </p>
+        <div className={styles.hintRow}>
+          <p className={styles.hint}>
+            <kbd>Enter</kbd> save &nbsp;·&nbsp; <kbd>Shift+Enter</kbd> newline &nbsp;·&nbsp; <kbd>Del</kbd> delete
+          </p>
+          <button className={styles.deleteBtn} onClick={onDelete}>
+            Del
+          </button>
+        </div>
       </div>
     </motion.div>
   );

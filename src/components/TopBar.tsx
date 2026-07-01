@@ -8,6 +8,7 @@ const MODES: { value: Mode; label: string }[] = [
   { value: 'arrow',   label: 'Arrow'   },
   { value: 'jump',    label: 'Jump'    },
   { value: 'summary', label: 'Summary' },
+  { value: 'bug',     label: 'Bug'     },
 ];
 
 type Props = {
@@ -18,6 +19,8 @@ type Props = {
   onBack: () => void;
   globalKeysEnabled: boolean;
   onGlobalKeysToggle: () => void;
+  notesExpanded: boolean;
+  onNotesExpandedToggle: () => void;
 };
 
 export default function TopBar({
@@ -28,6 +31,8 @@ export default function TopBar({
   onBack,
   globalKeysEnabled,
   onGlobalKeysToggle,
+  notesExpanded,
+  onNotesExpandedToggle,
 }: Props) {
   const [saved, setSaved] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -69,15 +74,30 @@ export default function TopBar({
       </div>
 
       <div className={styles.actions}>
-        <button
-          role="switch"
-          aria-checked={globalKeysEnabled}
-          className={`${styles.toggle} ${globalKeysEnabled ? styles.toggleOn : ''}`}
-          onClick={onGlobalKeysToggle}
-          title="Global keys — navigate while window is unfocused"
-        >
-          <span className={styles.toggleThumb} />
-        </button>
+        <label className={styles.toggleGroup}>
+          <span className={styles.toggleLabel}>Global</span>
+          <button
+            role="switch"
+            aria-checked={globalKeysEnabled}
+            className={`${styles.toggle} ${globalKeysEnabled ? styles.toggleOn : ''}`}
+            onClick={onGlobalKeysToggle}
+            title="Navigate while window is unfocused"
+          >
+            <span className={styles.toggleThumb} />
+          </button>
+        </label>
+        <label className={styles.toggleGroup}>
+          <span className={styles.toggleLabel}>Notes</span>
+          <button
+            role="switch"
+            aria-checked={notesExpanded}
+            className={`${styles.toggle} ${notesExpanded ? styles.toggleOn : ''}`}
+            onClick={onNotesExpandedToggle}
+            title="Show all note text inline"
+          >
+            <span className={styles.toggleThumb} />
+          </button>
+        </label>
         <button
           className={`${styles.iconBtn} ${saved ? styles.iconBtnSaved : ''}`}
           onClick={handleSave}
