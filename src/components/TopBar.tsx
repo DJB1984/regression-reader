@@ -16,6 +16,8 @@ type Props = {
   onModeChange: (mode: Mode) => void;
   onSave: () => void;
   onBack: () => void;
+  globalKeysEnabled: boolean;
+  onGlobalKeysToggle: () => void;
 };
 
 export default function TopBar({
@@ -24,6 +26,8 @@ export default function TopBar({
   onModeChange,
   onSave,
   onBack,
+  globalKeysEnabled,
+  onGlobalKeysToggle,
 }: Props) {
   const [saved, setSaved] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -65,6 +69,15 @@ export default function TopBar({
       </div>
 
       <div className={styles.actions}>
+        <button
+          role="switch"
+          aria-checked={globalKeysEnabled}
+          className={`${styles.toggle} ${globalKeysEnabled ? styles.toggleOn : ''}`}
+          onClick={onGlobalKeysToggle}
+          title="Global keys — navigate while window is unfocused"
+        >
+          <span className={styles.toggleThumb} />
+        </button>
         <button
           className={`${styles.iconBtn} ${saved ? styles.iconBtnSaved : ''}`}
           onClick={handleSave}

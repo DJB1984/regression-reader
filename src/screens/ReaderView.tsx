@@ -6,6 +6,7 @@ import { useSessionStore } from '../context/SessionStore';
 import { getHandles, getSession, saveHandles } from '../lib/db';
 import { pickMdFile, readMdFile, requestHandlePermission } from '../lib/fileSystem';
 import { parseLines } from '../lib/parseLines';
+import { useGlobalKeys } from '../hooks/useGlobalKeys';
 import TopBar from '../components/TopBar';
 import DocumentPane from '../components/DocumentPane';
 import KeyboardHandler from '../components/KeyboardHandler';
@@ -207,6 +208,7 @@ export default function ReaderView() {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' });
   const [sessionName, setSessionName] = useState('');
   const [loadTrigger, setLoadTrigger] = useState(0);
+  const [globalKeysEnabled, setGlobalKeysEnabled] = useState(false);
   const [state, dispatch] = useReducer(readerReducer, initialState);
   const debounceRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -329,6 +331,8 @@ export default function ReaderView() {
     dispatch({ type: 'SET_MODE', mode: next });
   }, []); // stable — reads mode via modeRef
 
+  useGlobalKeys(globalKeysEnabled, { onMoveUp, onMoveDown, onToggleCrossed, onCycleMode });
+
   const handleRelink = useCallback(async () => {
     if (!id) return;
     try {
@@ -370,6 +374,8 @@ export default function ReaderView() {
         onModeChange={mode => dispatch({ type: 'SET_MODE', mode })}
         onSave={onSave}
         onBack={() => navigate('/')}
+        globalKeysEnabled={globalKeysEnabled}
+        onGlobalKeysToggle={() => setGlobalKeysEnabled(v => !v)}
       />
       <DocumentPane
         lines={state.lines}
