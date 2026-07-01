@@ -9,6 +9,7 @@ type Props = {
   lines: string[];
   activeIndex: number;
   notes: Record<string, string>;
+  bugs: Record<string, string>;
   crossedLines: string[];
   mode: Mode;
   noteBubbleOpen: boolean;
@@ -36,6 +37,7 @@ export default function DocumentPane({
   lines,
   activeIndex,
   notes,
+  bugs,
   crossedLines,
   mode,
   noteBubbleOpen,
@@ -89,7 +91,8 @@ export default function DocumentPane({
   const visibleInSummary = useMemo(() => {
     if (mode !== 'summary') return null;
     const visible = new Set<number>();
-    for (const key of Object.keys(notes)) {
+    const annotatedKeys = new Set([...Object.keys(notes), ...Object.keys(bugs)]);
+    for (const key of annotatedKeys) {
       const lineIdx = Number(key);
       if (!lines[lineIdx]?.trim()) continue;
       visible.add(lineIdx);
@@ -98,7 +101,7 @@ export default function DocumentPane({
       for (let j = lineIdx + 1; j <= Math.min(lines.length - 1, lineIdx + expansion); j++) visible.add(j);
     }
     return visible;
-  }, [mode, notes, contextExpansion, lines]);
+  }, [mode, notes, bugs, contextExpansion, lines]);
 
   // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -250,7 +253,8 @@ export default function DocumentPane({
     if (mode !== 'scroll') onScroll();
   }, [mode, onScroll]);
 
-  const hasNotes = Object.keys(notes).some(k => lines[Number(k)]?.trim());
+  const hasAnnotations = Object.keys(notes).some(k => lines[Number(k)]?.trim())
+    || Object.keys(bugs).some(k => lines[Number(k)]?.trim());
 
   return (
     <div ref={paneRef} className={styles.pane} onWheel={handleWheel}>
@@ -258,9 +262,9 @@ export default function DocumentPane({
         {/* Plain div — positioned imperatively, no Framer Motion spring conflict */}
         <div ref={highlightRef} className={styles.highlight} />
 
-        {mode === 'summary' && !hasNotes && (
+        {mode === 'summary' && !hasAnnotations && (
           <div className={styles.emptyNotes}>
-            No notes yet — navigate to any line and press <kbd>Alt+N</kbd> to add one.
+            No notes or bugs yet — navigate to any line and press <kbd>N</kbd> or <kbd>B</kbd> to add one.
           </div>
         )}
 
@@ -268,12 +272,14 @@ export default function DocumentPane({
           const isBlank   = line.trim().length === 0;
           const isActive  = index === activeIndex;
           const isNoted   = !isBlank && String(index) in notes;
+          const hasBug    = !isBlank && String(index) in bugs;
+          const isAnnotated = isNoted || hasBug;
           const isCrossed = !isBlank && crossedLines.includes(String(index));
 
           let hidden    = false;
           let isContext = false;
           if (mode === 'summary') {
-            if (isNoted) {
+            if (isAnnotated) {
               hidden = false;
             } else if (visibleInSummary?.has(index)) {
               hidden    = false;
@@ -315,6 +321,7 @@ export default function DocumentPane({
                   line={line}
                   isActive={isActive}
                   hasNote={isNoted}
+                  hasBug={hasBug}
                   isCrossed={isCrossed}
                   isBlank={isBlank}
                   mode={mode}
@@ -359,6 +366,11 @@ export default function DocumentPane({
                 {notesExpanded && isNoted && !(isActive && noteBubbleOpen) && (
                   <div className={styles.inlineNote}>
                     {notes[String(index)]}
+                  </div>
+                )}
+                {notesExpanded && hasBug && !(isActive && bugBubbleOpen) && (
+                  <div className={styles.inlineBug}>
+                    {bugs[String(index)]}
                   </div>
                 )}
               </motion.div>

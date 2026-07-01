@@ -58,7 +58,7 @@ export function SessionStore({ children }: { children: ReactNode }) {
         lastAccessed: now,
         notes: {},
         crossedLines: [],
-        bugNotes: [],
+        bugs: {},
       };
 
       await Promise.all([
@@ -71,7 +71,7 @@ export function SessionStore({ children }: { children: ReactNode }) {
           lastAccessed: session.lastAccessed,
           notes: session.notes,
           crossedLines: session.crossedLines,
-          bugNotes: session.bugNotes,
+          bugs: session.bugs,
         }),
       ]);
 
@@ -127,7 +127,7 @@ export function SessionStore({ children }: { children: ReactNode }) {
       lastAccessed: session.lastAccessed,
       notes: session.notes,
       crossedLines: session.crossedLines ?? [],
-      bugNotes: session.bugNotes ?? [],
+      bugs: session.bugs ?? {},
     });
   }, []);
 

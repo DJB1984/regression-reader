@@ -19,6 +19,9 @@
   /* Accents */
   --note-dot: #f59e0b;
   --note-dot-glow: rgba(245, 158, 11, 0.35);
+  --bug-dot: #ef4444;
+  --bug-dot-glow: rgba(239, 68, 68, 0.35);
+  --progress-color: #22c55e;
   --active-glow: rgba(255, 255, 255, 0.04);
 
   /* Spacing scale */

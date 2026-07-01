@@ -11,12 +11,11 @@ type Props = {
   onToggleCrossed: () => void;
   onStrikeAndMove: () => void;
   onOpenBugBubble: () => void;
-  onMoveBugUp: () => void;
-  onMoveBugDown: () => void;
   onExitScroll: () => void;
   onExpandContext: () => void;
   onSummaryEscape: () => void;
   onCycleMode: (direction: 'prev' | 'next') => void;
+  onToggleGlobalKeys: () => void;
 };
 
 export default function KeyboardHandler({
@@ -29,15 +28,18 @@ export default function KeyboardHandler({
   onToggleCrossed,
   onStrikeAndMove,
   onOpenBugBubble,
-  onMoveBugUp,
-  onMoveBugDown,
   onExitScroll,
   onExpandContext,
   onSummaryEscape,
   onCycleMode,
+  onToggleGlobalKeys,
 }: Props) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // ScrollLock toggles the Global nav switch regardless of typing state —
+      // mirrors the always-on background hotkey in useGlobalKeys.
+      if (e.key === 'ScrollLock') { e.preventDefault(); onToggleGlobalKeys(); return; }
+
       const active = document.activeElement;
       const isTyping =
         active instanceof HTMLInputElement ||
@@ -52,23 +54,11 @@ export default function KeyboardHandler({
       // B always opens bug bubble regardless of mode
       if (e.key === 'b') { e.preventDefault(); onOpenBugBubble(); return; }
 
-      // N opens bug bubble in bug mode, note bubble otherwise
-      if (e.key === 'n') {
-        e.preventDefault();
-        if (mode === 'bug') onOpenBugBubble();
-        else onOpenNote();
-        return;
-      }
+      // N opens the note bubble for the active line
+      if (e.key === 'n') { e.preventDefault(); onOpenNote(); return; }
 
-      // X toggles strikethrough on the active line in all modes
-      if (e.key === 'x') { e.preventDefault(); onToggleCrossed(); return; }
-
-      // Bug mode navigation
-      if (mode === 'bug') {
-        if (e.key === 'ArrowDown' || e.key === 's' || e.key === 'Enter') { e.preventDefault(); onMoveBugDown(); }
-        if (e.key === 'ArrowUp'   || e.key === 'w')                      { e.preventDefault(); onMoveBugUp(); }
-        return;
-      }
+      // C toggles strikethrough on the active line in all modes
+      if (e.key === 'c') { e.preventDefault(); onToggleCrossed(); return; }
 
       if (mode === 'scroll') {
         if (e.key === 'Escape') { e.preventDefault(); onExitScroll(); }
@@ -99,8 +89,8 @@ export default function KeyboardHandler({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [mode, onMoveUp, onMoveUpUncross, onMoveDown, onToggleJump, onOpenNote, onToggleCrossed,
-      onStrikeAndMove, onOpenBugBubble, onMoveBugUp, onMoveBugDown,
-      onExitScroll, onExpandContext, onSummaryEscape, onCycleMode]);
+      onStrikeAndMove, onOpenBugBubble,
+      onExitScroll, onExpandContext, onSummaryEscape, onCycleMode, onToggleGlobalKeys]);
 
   return null;
 }

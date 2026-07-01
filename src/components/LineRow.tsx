@@ -6,6 +6,7 @@ type Props = {
   line: string;
   isActive: boolean;
   hasNote: boolean;
+  hasBug: boolean;
   isCrossed?: boolean;
   isBlank: boolean;
   mode: Mode;
@@ -18,6 +19,7 @@ export default function LineRow({
   line,
   isActive,
   hasNote,
+  hasBug,
   isCrossed,
   isBlank,
   mode,
@@ -48,6 +50,7 @@ export default function LineRow({
     >
       <span className={styles.dot}>
         {hasNote && !isBlank && <span className={styles.dotMark} aria-hidden />}
+        {hasBug && !isBlank && <span className={styles.bugDotMark} aria-hidden />}
       </span>
       <span className={styles.text}>{isBlank ? '' : line}</span>
     </div>

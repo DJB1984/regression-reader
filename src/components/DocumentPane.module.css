@@ -60,6 +60,21 @@
   pointer-events: none;
 }
 
+.inlineBug {
+  margin: 2px 0 4px calc(var(--space-6) + 8px + var(--space-3));
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
+  color: rgba(239, 68, 68, 0.75);
+  background: rgba(239, 68, 68, 0.05);
+  border-left: 2px solid rgba(239, 68, 68, 0.3);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.55;
+  pointer-events: none;
+}
+
 .emptyNotes {
   padding: 48px var(--space-6);
   text-align: center;

@@ -8,7 +8,6 @@ const MODES: { value: Mode; label: string }[] = [
   { value: 'arrow',   label: 'Arrow'   },
   { value: 'jump',    label: 'Jump'    },
   { value: 'summary', label: 'Summary' },
-  { value: 'bug',     label: 'Bug'     },
 ];
 
 type Props = {
@@ -21,6 +20,8 @@ type Props = {
   onGlobalKeysToggle: () => void;
   notesExpanded: boolean;
   onNotesExpandedToggle: () => void;
+  completedLines: number;
+  totalLines: number;
 };
 
 export default function TopBar({
@@ -33,9 +34,12 @@ export default function TopBar({
   onGlobalKeysToggle,
   notesExpanded,
   onNotesExpandedToggle,
+  completedLines,
+  totalLines,
 }: Props) {
   const [saved, setSaved] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const percent = totalLines > 0 ? Math.round((completedLines / totalLines) * 100) : 0;
 
   const handleSave = () => {
     onSave();
@@ -73,6 +77,16 @@ export default function TopBar({
         ))}
       </div>
 
+      <div
+        className={styles.progress}
+        title={`${completedLines} of ${totalLines} lines completed`}
+      >
+        <span className={styles.progressTrack}>
+          <span className={styles.progressFill} style={{ transform: `scaleX(${percent / 100})` }} />
+        </span>
+        <span className={styles.progressPct}>{percent}%</span>
+      </div>
+
       <div className={styles.actions}>
         <label className={styles.toggleGroup}>
           <span className={styles.toggleLabel}>Global</span>
@@ -81,7 +95,7 @@ export default function TopBar({
             aria-checked={globalKeysEnabled}
             className={`${styles.toggle} ${globalKeysEnabled ? styles.toggleOn : ''}`}
             onClick={onGlobalKeysToggle}
-            title="Navigate while window is unfocused"
+            title="Navigate while window is unfocused — toggle anytime with Scroll Lock"
           >
             <span className={styles.toggleThumb} />
           </button>
@@ -93,7 +107,7 @@ export default function TopBar({
             aria-checked={notesExpanded}
             className={`${styles.toggle} ${notesExpanded ? styles.toggleOn : ''}`}
             onClick={onNotesExpandedToggle}
-            title="Show all note text inline"
+            title="Show all note and bug text inline"
           >
             <span className={styles.toggleThumb} />
           </button>
