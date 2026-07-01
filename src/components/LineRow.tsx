@@ -6,6 +6,7 @@ type Props = {
   line: string;
   isActive: boolean;
   hasNote: boolean;
+  isCrossed?: boolean;
   isBlank: boolean;
   mode: Mode;
   isContext?: boolean;
@@ -17,6 +18,7 @@ export default function LineRow({
   line,
   isActive,
   hasNote,
+  isCrossed,
   isBlank,
   mode,
   isContext,
@@ -33,10 +35,11 @@ export default function LineRow({
       ref={elementRef}
       className={[
         styles.row,
-        isBlank   ? styles.blank    : '',
-        faded     ? styles.faded    : '',
-        isContext ? styles.context  : '',
+        isBlank   ? styles.blank     : '',
+        faded     ? styles.faded     : '',
+        isContext ? styles.context   : '',
         clickable ? styles.clickable : '',
+        isCrossed ? styles.crossed   : '',
       ]
         .filter(Boolean)
         .join(' ')}

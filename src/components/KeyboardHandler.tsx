@@ -7,6 +7,7 @@ type Props = {
   onMoveDown: () => void;
   onToggleJump: () => void;
   onOpenNote: () => void;
+  onToggleCrossed: () => void;
   onExitScroll: () => void;
   onExpandContext: () => void;
   onSummaryEscape: () => void;
@@ -19,6 +20,7 @@ export default function KeyboardHandler({
   onMoveDown,
   onToggleJump,
   onOpenNote,
+  onToggleCrossed,
   onExitScroll,
   onExpandContext,
   onSummaryEscape,
@@ -39,6 +41,9 @@ export default function KeyboardHandler({
 
       // N opens the note bubble in all modes
       if (e.key === 'n') { e.preventDefault(); onOpenNote(); return; }
+
+      // X toggles strikethrough on the active line in all modes
+      if (e.key === 'x') { e.preventDefault(); onToggleCrossed(); return; }
 
       if (mode === 'scroll') {
         if (e.key === 'Escape') { e.preventDefault(); onExitScroll(); }
@@ -63,7 +68,7 @@ export default function KeyboardHandler({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mode, onMoveUp, onMoveDown, onToggleJump, onOpenNote,
+  }, [mode, onMoveUp, onMoveDown, onToggleJump, onOpenNote, onToggleCrossed,
       onExitScroll, onExpandContext, onSummaryEscape, onCycleMode]);
 
   return null;

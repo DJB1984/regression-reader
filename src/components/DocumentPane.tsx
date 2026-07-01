@@ -9,6 +9,7 @@ type Props = {
   lines: string[];
   activeIndex: number;
   notes: Record<string, string>;
+  crossedLines: string[];
   mode: Mode;
   noteBubbleOpen: boolean;
   noteBubbleDraft: string;
@@ -27,6 +28,7 @@ export default function DocumentPane({
   lines,
   activeIndex,
   notes,
+  crossedLines,
   mode,
   noteBubbleOpen,
   noteBubbleDraft,
@@ -213,9 +215,10 @@ export default function DocumentPane({
         )}
 
         {lines.map((line, index) => {
-          const isBlank  = line.trim().length === 0;
-          const isActive = index === activeIndex;
-          const isNoted  = !isBlank && String(index) in notes;
+          const isBlank   = line.trim().length === 0;
+          const isActive  = index === activeIndex;
+          const isNoted   = !isBlank && String(index) in notes;
+          const isCrossed = !isBlank && crossedLines.includes(String(index));
 
           let hidden    = false;
           let isContext = false;
@@ -262,6 +265,7 @@ export default function DocumentPane({
                   line={line}
                   isActive={isActive}
                   hasNote={isNoted}
+                  isCrossed={isCrossed}
                   isBlank={isBlank}
                   mode={mode}
                   isContext={isContext}

@@ -57,6 +57,7 @@ export function SessionStore({ children }: { children: ReactNode }) {
         currentLineIndex: 0,
         lastAccessed: now,
         notes: {},
+        crossedLines: [],
       };
 
       await Promise.all([
@@ -68,6 +69,7 @@ export function SessionStore({ children }: { children: ReactNode }) {
           currentLineIndex: session.currentLineIndex,
           lastAccessed: session.lastAccessed,
           notes: session.notes,
+          crossedLines: session.crossedLines,
         }),
       ]);
 
@@ -122,6 +124,7 @@ export function SessionStore({ children }: { children: ReactNode }) {
       currentLineIndex: session.currentLineIndex,
       lastAccessed: session.lastAccessed,
       notes: session.notes,
+      crossedLines: session.crossedLines ?? [],
     });
   }, []);
 

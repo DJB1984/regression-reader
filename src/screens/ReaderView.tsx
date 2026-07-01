@@ -17,6 +17,7 @@ type ReaderState = {
   lines: string[];
   activeIndex: number;
   notes: Record<string, string>;
+  crossedLines: string[];
   mode: Mode;
   noteBubbleOpen: boolean;
   noteBubbleDraft: string;
@@ -24,7 +25,7 @@ type ReaderState = {
 };
 
 type ReaderAction =
-  | { type: 'INIT'; lines: string[]; activeIndex: number; notes: Record<string, string> }
+  | { type: 'INIT'; lines: string[]; activeIndex: number; notes: Record<string, string>; crossedLines: string[] }
   | { type: 'MOVE'; direction: 'prev' | 'next' }
   | { type: 'SET_MODE'; mode: Mode }
   | { type: 'CLICK_LINE'; index: number }
@@ -32,6 +33,7 @@ type ReaderAction =
   | { type: 'CLOSE_NOTE_BUBBLE' }
   | { type: 'SET_NOTE_DRAFT'; text: string }
   | { type: 'SAVE_NOTE' }
+  | { type: 'TOGGLE_CROSSED' }
   | { type: 'EXPAND_CONTEXT' }
   | { type: 'SUMMARY_ESCAPE' }
   | { type: 'SUMMARY_COLLAPSE_CURRENT' };
@@ -40,6 +42,7 @@ const initialState: ReaderState = {
   lines: [],
   activeIndex: 0,
   notes: {},
+  crossedLines: [],
   mode: 'arrow',
   noteBubbleOpen: false,
   noteBubbleDraft: '',
@@ -70,6 +73,7 @@ function readerReducer(state: ReaderState, action: ReaderAction): ReaderState {
         lines: action.lines,
         activeIndex: action.activeIndex,
         notes: action.notes,
+        crossedLines: action.crossedLines,
       };
 
     case 'MOVE': {
@@ -138,6 +142,18 @@ function readerReducer(state: ReaderState, action: ReaderAction): ReaderState {
         delete notes[String(state.activeIndex)];
       }
       return { ...state, notes, noteBubbleOpen: false, noteBubbleDraft: '' };
+    }
+
+    case 'TOGGLE_CROSSED': {
+      if (state.lines[state.activeIndex]?.trim().length === 0) return state;
+      const key = String(state.activeIndex);
+      const already = state.crossedLines.includes(key);
+      return {
+        ...state,
+        crossedLines: already
+          ? state.crossedLines.filter(k => k !== key)
+          : [...state.crossedLines, key],
+      };
     }
 
     case 'EXPAND_CONTEXT': {
@@ -234,7 +250,7 @@ export default function ReaderView() {
           : Math.max(0, firstNonBlank);
 
       setSessionName(session.sessionName);
-      dispatch({ type: 'INIT', lines, activeIndex: safeIndex, notes: session.notes });
+      dispatch({ type: 'INIT', lines, activeIndex: safeIndex, notes: session.notes, crossedLines: session.crossedLines ?? [] });
       setLoadState({ status: 'ready' });
     }
     load().catch(() => setLoadState({ status: 'error', message: 'Failed to load file.', canRelink: true }));
@@ -243,7 +259,7 @@ export default function ReaderView() {
   // Persist to IndexedDB instantly; debounce disk flush
   useEffect(() => {
     if (loadState.status !== 'ready' || !id) return;
-    updateSession(id, { currentLineIndex: state.activeIndex, notes: state.notes });
+    updateSession(id, { currentLineIndex: state.activeIndex, notes: state.notes, crossedLines: state.crossedLines });
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => { flushToDisk(id); }, 5000);
   }, [state.activeIndex, state.notes, id, loadState.status, updateSession, flushToDisk]);
@@ -300,8 +316,9 @@ export default function ReaderView() {
   const onCloseNote    = useCallback(() => dispatch({ type: 'CLOSE_NOTE_BUBBLE' }), []);
   const onSaveNote     = useCallback(() => dispatch({ type: 'SAVE_NOTE' }), []);
   const onSetNoteDraft = useCallback((text: string) => dispatch({ type: 'SET_NOTE_DRAFT', text }), []);
-  const onExpandContext  = useCallback(() => dispatch({ type: 'EXPAND_CONTEXT' }), []);
-  const onSummaryEscape  = useCallback(() => dispatch({ type: 'SUMMARY_ESCAPE' }), []);
+  const onExpandContext   = useCallback(() => dispatch({ type: 'EXPAND_CONTEXT' }), []);
+  const onSummaryEscape   = useCallback(() => dispatch({ type: 'SUMMARY_ESCAPE' }), []);
+  const onToggleCrossed   = useCallback(() => dispatch({ type: 'TOGGLE_CROSSED' }), []);
 
   const MODE_CYCLE: Mode[] = ['scroll', 'arrow', 'jump', 'summary'];
   const onCycleMode = useCallback((direction: 'prev' | 'next') => {
@@ -358,6 +375,7 @@ export default function ReaderView() {
         lines={state.lines}
         activeIndex={state.activeIndex}
         notes={state.notes}
+        crossedLines={state.crossedLines}
         mode={state.mode}
         noteBubbleOpen={state.noteBubbleOpen}
         noteBubbleDraft={state.noteBubbleDraft}
@@ -387,6 +405,7 @@ export default function ReaderView() {
         onMoveDown={onMoveDown}
         onToggleJump={onToggleJump}
         onOpenNote={onOpenNote}
+        onToggleCrossed={onToggleCrossed}
         onExitScroll={onExitScroll}
         onExpandContext={onExpandContext}
         onSummaryEscape={onSummaryEscape}

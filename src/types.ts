@@ -7,6 +7,7 @@ export type SessionData = {
   currentLineIndex: number;
   lastAccessed: string;
   notes: Record<string, string>;
+  crossedLines: string[];
 };
 
 export type SessionHandles = {
